@@ -407,9 +407,10 @@ const Home: React.FC = () => {
                         <Info className="w-3 h-3" /> 为什么手机上传没有地理信息？
                     </h4>
                     <ul className="text-[10px] text-muted-foreground list-disc pl-4 space-y-1">
-                        <li><strong>系统保护：</strong>移动设备（iOS/Android）在通过浏览器上传时，常出于隐私考虑自动抹除 GPS 信息。</li>
+                        <li><strong>系统保护：</strong>移动设备（iOS/Android）默认相册在向浏览器分享图片时，常出于隐私考虑自动抹除 GPS 信息。</li>
+                        <li><strong>安卓用户技巧：</strong>如果从相册选择无效，请尝试点击上传后选择<strong>“文件”</strong>或<strong>“文件管理”</strong>，在存储目录中直接选取原始图片文件。</li>
+                        <li><strong>iOS 用户技巧：</strong>在选择照片时，点击顶部的<strong>“选项”</strong>，并勾选<strong>“所有照片数据”</strong>，否则地理位置会被剥离。</li>
                         <li><strong>相机设置：</strong>需检查手机相机设置中是否开启了“保存地理位置”。</li>
-                        <li><strong>iOS 用户：</strong>在选择照片时，点击顶部的“选项”，并确保开启“所有照片数据”。</li>
                         <li><strong>格式限制：</strong>目前主要支持 JPEG/JPG 格式，HEIC 格式在某些设备上会被转码导致丢失元数据。</li>
                     </ul>
                 </div>
