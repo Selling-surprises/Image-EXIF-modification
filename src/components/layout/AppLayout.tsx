@@ -16,7 +16,7 @@ export const Layout: React.FC = () => {
         <div className="container flex h-16 items-center justify-between px-4 md:px-8">
           <div className="flex items-center gap-2">
             <Camera className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold tracking-tight">EXIF Editor</span>
+            <span className="text-xl font-bold tracking-tight">EXIF 编辑器</span>
           </div>
 
           {/* Desktop Nav */}
@@ -44,7 +44,7 @@ export const Layout: React.FC = () => {
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2">
                   <Camera className="h-5 w-5 text-primary" />
-                  EXIF Editor
+                  EXIF 编辑器
                 </SheetTitle>
               </SheetHeader>
               <div className="flex flex-col space-y-4 mt-8">

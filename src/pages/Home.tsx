@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -71,7 +71,16 @@ interface ExifFormValues {
 const Home: React.FC = () => {
   const [images, setImages] = useState<ImageData[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
+  const [isAndroidMobile, setIsAndroidMobile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // 检测是否为安卓手机
+    const ua = navigator.userAgent.toLowerCase();
+    const isAndroid = /android/.test(ua);
+    const isMobile = /mobile/.test(ua);
+    setIsAndroidMobile(isAndroid && isMobile);
+  }, []);
 
   const form = useForm<ExifFormValues>({
     resolver: zodResolver(exifFormSchema),
@@ -224,7 +233,7 @@ const Home: React.FC = () => {
     
     const link = document.createElement('a');
     link.href = img.base64;
-    link.download = `modified_${img.file.name}`;
+    link.download = `已修改_${img.file.name}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -241,13 +250,13 @@ const Home: React.FC = () => {
       
       images.forEach((img, index) => {
         const base64Data = img.base64.split(',')[1];
-        zip.file(`modified_${img.file.name}`, base64Data, { base64: true });
+        zip.file(`已修改_${img.file.name}`, base64Data, { base64: true });
       });
 
       const content = await zip.generateAsync({ type: 'blob' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(content);
-      link.download = `exif_edited_images_${Date.now()}.zip`;
+      link.download = `EXIF已编辑图片_${Date.now()}.zip`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -317,13 +326,15 @@ const Home: React.FC = () => {
           <h3 className="text-2xl font-semibold mb-2">点击或拖拽图片到这里</h3>
           <p className="text-muted-foreground mb-4">支持 JPG, JPEG 格式 · 支持批量上传</p>
           
-          {/* 红色提示 */}
-          <div className="mt-6 p-4 bg-red-50 dark:bg-red-950/20 border-2 border-red-500 rounded-lg max-w-md">
-            <p className="text-sm font-bold text-red-600 dark:text-red-400 flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 shrink-0" />
-              <span>推荐使用夸克、UC 等浏览器，可直接读取完整图片信息！</span>
-            </p>
-          </div>
+          {/* 红色提示 - 仅在安卓手机端显示 */}
+          {isAndroidMobile && (
+            <div className="mt-6 p-4 bg-red-50 dark:bg-red-950/20 border-2 border-red-500 rounded-lg max-w-md">
+              <p className="text-sm font-bold text-red-600 dark:text-red-400 flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <span>推荐使用夸克、UC 等浏览器，可直接读取完整图片信息！</span>
+              </p>
+            </div>
+          )}
           
           <input 
             type="file" 
@@ -600,14 +611,17 @@ const Home: React.FC = () => {
                 </Form>
               </CardContent>
               <CardFooter className="bg-muted/50 border-t p-4 rounded-b-xl flex flex-col gap-4 items-start">
-                <div className="flex gap-2 w-full">
-                    <AlertCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
-                    <p className="text-xs font-bold text-red-600 dark:text-red-400">
-                      提示：夸克、UC 等手机浏览器具有更强的元数据读取能力。若默认相册无法读取 GPS，请尝试使用“文件管理”方式选取。
-                    </p>
-                </div>
+                {/* 红色提示 - 仅在安卓手机端显示 */}
+                {isAndroidMobile && (
+                  <div className="flex gap-2 w-full">
+                      <AlertCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                      <p className="text-xs font-bold text-red-600 dark:text-red-400">
+                        提示：夸克、UC 等手机浏览器具有更强的元数据读取能力。若默认相册无法读取 GPS，请尝试使用“文件管理”方式选取。
+                      </p>
+                  </div>
+                )}
                 
-                <Separator />
+                {isAndroidMobile && <Separator />}
                 
                 <div className="space-y-2">
                     <h4 className="text-xs font-bold flex items-center gap-1 text-foreground">
