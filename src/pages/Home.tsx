@@ -392,11 +392,27 @@ const Home: React.FC = () => {
                   </form>
                 </Form>
               </CardContent>
-              <CardFooter className="bg-muted/50 border-t p-4 rounded-b-xl flex gap-2">
-                <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  提示: 修改后的图片保存在浏览器内存中。下载后，所有 EXIF 标签将按照您的设置重新嵌入图片。JPG 以外的格式目前支持有限。
-                </p>
+              <CardFooter className="bg-muted/50 border-t p-4 rounded-b-xl flex flex-col gap-4 items-start">
+                <div className="flex gap-2 w-full">
+                    <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                    提示: 修改后的图片保存在浏览器内存中。下载后，所有 EXIF 标签将按照您的设置重新嵌入图片。JPG 以外的格式目前支持有限。
+                    </p>
+                </div>
+                
+                <Separator />
+                
+                <div className="space-y-2">
+                    <h4 className="text-xs font-bold flex items-center gap-1 text-foreground">
+                        <Info className="w-3 h-3" /> 为什么手机上传没有地理信息？
+                    </h4>
+                    <ul className="text-[10px] text-muted-foreground list-disc pl-4 space-y-1">
+                        <li><strong>系统保护：</strong>移动设备（iOS/Android）在通过浏览器上传时，常出于隐私考虑自动抹除 GPS 信息。</li>
+                        <li><strong>相机设置：</strong>需检查手机相机设置中是否开启了“保存地理位置”。</li>
+                        <li><strong>iOS 用户：</strong>在选择照片时，点击顶部的“选项”，并确保开启“所有照片数据”。</li>
+                        <li><strong>格式限制：</strong>目前主要支持 JPEG/JPG 格式，HEIC 格式在某些设备上会被转码导致丢失元数据。</li>
+                    </ul>
+                </div>
               </CardFooter>
             </Card>
           </div>
