@@ -2,24 +2,17 @@
 
 ## Plan
 - [x] 基础布局与路由设置
-  - [x] 更新 `src/routes.tsx`
-  - [x] 创建 `src/components/layout/AppLayout.tsx`
-- [x] EXIF 工具类编写 (`src/lib/exif-utils.ts`)
-  - [x] 处理 Base64 图片读取
-  - [x] GPS 坐标转换 (Decimal to DMS, DMS to Decimal)
-  - [x] EXIF 数据读取与显示格式化
-  - [x] EXIF 数据更新与写入
-- [x] 首页 `src/pages/Home.tsx` 页面开发
-  - [x] 图片上传与拖拽区
-  - [x] 图片预览
-  - [x] EXIF 信息展示表格
-  - [x] GPS 编辑表单
-  - [x] 下载保存逻辑
-- [x] 最终样式与交互优化
-- [x] 代码质量检查与 Lint
+- [x] EXIF 工具类编写
+- [x] 单图片上传与编辑功能
+- [x] 批量上传与编辑功能
+  - [x] 支持多文件上传
+  - [x] 图片列表展示与切换
+  - [x] 批量应用相同设置
+  - [x] 批量下载（ZIP 打包）
+- [x] 红色提示文本优化
+- [x] 最终测试与 Lint
 
 ## Notes
-- `piexifjs` 库用于处理 EXIF 的读取和写入。
-- 修改 GPS 需要处理度分秒 (DMS) 格式。
-- 下载时需要保持原图质量（piexifjs 支持）。
-- 此项目为纯前端实现。
+- 使用 `jszip` 实现批量下载。
+- 批量编辑时可选择"应用到所有图片"。
+- 夸克、UC 等浏览器可直接读取完整元数据。
