@@ -101,26 +101,40 @@ export const updateExifGps = (base64: string, lat: number | null, lng: number | 
   return piexif.insert(exifBytes, base64);
 };
 
-export const updateExifFields = (base64: string, updates: Record<string, string>): string => {
-    const exifObj = piexif.load(base64);
-    
-    // 拍摄时间修改
-    if (updates.dateTime) {
-        if (!exifObj["Exif"]) exifObj["Exif"] = {};
-        exifObj["Exif"][piexif.ExifIFD.DateTimeOriginal] = updates.dateTime;
-        exifObj["Exif"][piexif.ExifIFD.DateTimeDigitized] = updates.dateTime;
-    }
-    
-    // 设备修改
-    if (updates.make) {
-        if (!exifObj["0th"]) exifObj["0th"] = {};
-        exifObj["0th"][piexif.ImageIFD.Make] = updates.make;
-    }
-    if (updates.model) {
-        if (!exifObj["0th"]) exifObj["0th"] = {};
-        exifObj["0th"][piexif.ImageIFD.Model] = updates.model;
-    }
+export const updateExifFields = (base64: string, updates: Record<string, string | null>): string => {
+  const exifObj = piexif.load(base64);
+  
+  // 拍摄时间修改逻辑
+  if (updates.dateTime) {
+    if (!exifObj["Exif"]) exifObj["Exif"] = {};
+    exifObj["Exif"][piexif.ExifIFD.DateTimeOriginal] = updates.dateTime;
+    exifObj["Exif"][piexif.ExifIFD.DateTimeDigitized] = updates.dateTime;
+  }
+  
+  // 设备厂家修改
+  if (updates.make !== undefined) {
+    if (!exifObj["0th"]) exifObj["0th"] = {};
+    exifObj["0th"][piexif.ImageIFD.Make] = updates.make || "";
+  }
+  
+  // 设备型号修改
+  if (updates.model !== undefined) {
+    if (!exifObj["0th"]) exifObj["0th"] = {};
+    exifObj["0th"][piexif.ImageIFD.Model] = updates.model || "";
+  }
 
-    const exifBytes = piexif.dump(exifObj);
-    return piexif.insert(exifBytes, base64);
+  const exifBytes = piexif.dump(exifObj);
+  return piexif.insert(exifBytes, base64);
+};
+
+// 格式化 EXIF 时间 (YYYY:MM:DD HH:MM:SS)
+export const formatExifDate = (date: string, hour: string, minute: string): string => {
+  // 确保日期格式正确，EXIF 使用冒号分隔日期
+  const formattedDate = date.replace(/-/g, ':');
+  return `${formattedDate} ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}:00`;
+};
+
+// 获取随机分钟 (00-59)
+export const getRandomMinute = (): string => {
+  return Math.floor(Math.random() * 60).toString().padStart(2, '0');
 };

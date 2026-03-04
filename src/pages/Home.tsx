@@ -38,7 +38,8 @@ import {
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-import { getExifFromBase64, updateExifGps, updateExifFields, type ExifData } from '@/lib/exif-utils';
+import { getExifFromBase64, updateExifGps, updateExifFields, formatExifDate, getRandomMinute, type ExifData } from '@/lib/exif-utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // 图片数据接口
 interface ImageData {
@@ -51,20 +52,39 @@ interface ImageData {
 
 // 表单验证模式
 const exifFormSchema = z.object({
+  // GPS 修改开关
+  modifyGPS: z.boolean(),
   latitude: z.union([z.number(), z.null()]).optional(),
   longitude: z.union([z.number(), z.null()]).optional(),
+  
+  // 设备信息修改开关
+  modifyDevice: z.boolean(),
   make: z.string().optional(),
   model: z.string().optional(),
-  dateTime: z.string().optional(),
+  
+  // 时间修改开关
+  modifyDateTime: z.boolean(),
+  dateOnly: z.string().optional(),
+  hourOnly: z.string().optional(),
+  minuteOnly: z.string().optional(),
+  
   applyToAll: z.boolean(),
 });
 
 interface ExifFormValues {
+  modifyGPS: boolean;
   latitude?: number | null;
   longitude?: number | null;
+  
+  modifyDevice: boolean;
   make?: string;
   model?: string;
-  dateTime?: string;
+  
+  modifyDateTime: boolean;
+  dateOnly?: string;
+  hourOnly?: string;
+  minuteOnly?: string;
+  
   applyToAll: boolean;
 }
 
@@ -85,11 +105,16 @@ const Home: React.FC = () => {
   const form = useForm<ExifFormValues>({
     resolver: zodResolver(exifFormSchema),
     defaultValues: {
+      modifyGPS: false,
       latitude: null,
       longitude: null,
+      modifyDevice: false,
       make: '',
       model: '',
-      dateTime: '',
+      modifyDateTime: false,
+      dateOnly: '',
+      hourOnly: '08',
+      minuteOnly: '',
       applyToAll: false,
     },
   });
@@ -150,12 +175,34 @@ const Home: React.FC = () => {
             // 更新表单为第一张新图片的数据
             if (newImages[0]?.exifData) {
               const data = newImages[0].exifData;
+              let dateVal = '';
+              let hourVal = '08';
+              let minuteVal = '';
+              
+              const rawDateTime = data.formatted["拍摄时间"];
+              if (rawDateTime && typeof rawDateTime === 'string') {
+                const parts = rawDateTime.split(' ');
+                if (parts.length === 2) {
+                  dateVal = parts[0].replace(/:/g, '-');
+                  const timeParts = parts[1].split(':');
+                  if (timeParts.length >= 2) {
+                    hourVal = timeParts[0];
+                    minuteVal = timeParts[1];
+                  }
+                }
+              }
+
               form.reset({
+                modifyGPS: false,
                 latitude: data.gps.latitude,
                 longitude: data.gps.longitude,
+                modifyDevice: false,
                 make: data.formatted["设备厂家"] || '',
                 model: data.formatted["设备型号"] || '',
-                dateTime: data.formatted["拍摄时间"] || '',
+                modifyDateTime: false,
+                dateOnly: dateVal,
+                hourOnly: hourVal,
+                minuteOnly: minuteVal,
                 applyToAll: false,
               });
             }
@@ -185,20 +232,47 @@ const Home: React.FC = () => {
     try {
       const applyToAll = values.applyToAll;
       const indicesToUpdate = applyToAll ? images.map((_, i) => i) : [currentImageIndex];
-
       const updatedImages = [...images];
+      
+      let skippedTimeCount = 0;
+      let usedDefaultTimeCount = 0;
 
       indicesToUpdate.forEach(index => {
         let updatedBase64 = updatedImages[index].base64;
+        const originalExif = updatedImages[index].exifData;
         
-        // 更新 GPS
-        updatedBase64 = updateExifGps(updatedBase64, values.latitude ?? null, values.longitude ?? null);
+        // 1. 更新 GPS (仅在勾选 modifyGPS 时)
+        if (values.modifyGPS) {
+          updatedBase64 = updateExifGps(updatedBase64, values.latitude ?? null, values.longitude ?? null);
+        }
         
-        // 更新其他字段
-        const fieldUpdates: Record<string, string> = {};
-        if (values.make) fieldUpdates.make = values.make;
-        if (values.model) fieldUpdates.model = values.model;
-        if (values.dateTime) fieldUpdates.dateTime = values.dateTime;
+        // 2. 更新其他字段
+        const fieldUpdates: Record<string, string | null> = {};
+        
+        // 更新设备信息 (仅在勾选 modifyDevice 时)
+        if (values.modifyDevice) {
+          fieldUpdates.make = values.make || "";
+          fieldUpdates.model = values.model || "";
+        }
+        
+        // 更新日期时间 (仅在勾选 modifyDateTime 时)
+        if (values.modifyDateTime) {
+          const hasOriginalTime = !!originalExif?.formatted["拍摄时间"];
+          
+          if (!hasOriginalTime) {
+            skippedTimeCount++;
+          } else if (values.dateOnly) {
+            let finalHour = values.hourOnly || "08";
+            let finalMinute = values.minuteOnly;
+            
+            if (!finalMinute) {
+              finalMinute = getRandomMinute();
+              usedDefaultTimeCount++;
+            }
+            
+            fieldUpdates.dateTime = formatExifDate(values.dateOnly, finalHour, finalMinute);
+          }
+        }
         
         updatedBase64 = updateExifFields(updatedBase64, fieldUpdates);
         
@@ -215,11 +289,15 @@ const Home: React.FC = () => {
 
       setImages(updatedImages);
       
-      if (applyToAll) {
-        toast.success(`已将修改应用到所有 ${images.length} 张图片`);
-      } else {
-        toast.success('EXIF 信息已保存');
+      let msg = applyToAll ? `已成功处理 ${images.length} 张图片。` : '已成功保存当前图片修改。';
+      if (skippedTimeCount > 0) {
+        msg += ` 提示：有 ${skippedTimeCount} 张图片因缺少原始时间信息被跳过时间修改。`;
       }
+      if (usedDefaultTimeCount > 0) {
+        msg += ` 提示：有 ${usedDefaultTimeCount} 张图片使用了默认时间（08:${getRandomMinute()} 等）。`;
+      }
+      
+      toast.info(msg, { duration: 5000 });
     } catch (error) {
       console.error('Update Error:', error);
       toast.error('修改 EXIF 信息失败');
@@ -291,12 +369,35 @@ const Home: React.FC = () => {
     setCurrentImageIndex(index);
     const img = images[index];
     if (img?.exifData) {
+      // 解析日期时间
+      let dateVal = '';
+      let hourVal = '08';
+      let minuteVal = '';
+      
+      const rawDateTime = img.exifData.formatted["拍摄时间"];
+      if (rawDateTime && typeof rawDateTime === 'string') {
+        const parts = rawDateTime.split(' ');
+        if (parts.length === 2) {
+          dateVal = parts[0].replace(/:/g, '-');
+          const timeParts = parts[1].split(':');
+          if (timeParts.length >= 2) {
+            hourVal = timeParts[0];
+            minuteVal = timeParts[1];
+          }
+        }
+      }
+
       form.reset({
+        modifyGPS: false,
         latitude: img.exifData.gps.latitude,
         longitude: img.exifData.gps.longitude,
+        modifyDevice: false,
         make: img.exifData.formatted["设备厂家"] || '',
         model: img.exifData.formatted["设备型号"] || '',
-        dateTime: img.exifData.formatted["拍摄时间"] || '',
+        modifyDateTime: false,
+        dateOnly: dateVal,
+        hourOnly: hourVal,
+        minuteOnly: minuteVal,
         applyToAll: false,
       });
     }
@@ -506,12 +607,25 @@ const Home: React.FC = () => {
                     />
 
                     {/* GPS Section */}
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 font-semibold text-md text-primary">
-                        <MapPin className="h-4 w-4" />
-                        GPS 位置设置
+                    <div className={`space-y-3 p-3 rounded-lg border transition-colors ${form.watch('modifyGPS') ? 'bg-primary/5 border-primary/20' : 'bg-muted/30 border-muted-foreground/20'}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 font-semibold text-md text-primary">
+                          <MapPin className="h-4 w-4" />
+                          GPS 位置设置
+                        </div>
+                        <FormField
+                          control={form.control}
+                          name="modifyGPS"
+                          render={({ field }) => (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">修改此项</span>
+                              <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                            </div>
+                          )}
+                        />
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
+                      
+                      <div className={`grid grid-cols-2 gap-3 transition-opacity ${form.watch('modifyGPS') ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
                         <FormField
                           control={form.control}
                           name="latitude"
@@ -544,12 +658,25 @@ const Home: React.FC = () => {
                     <Separator />
 
                     {/* Device Section */}
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 font-semibold text-md text-purple-500">
-                        <Smartphone className="h-4 w-4" />
-                        设备信息
+                    <div className={`space-y-3 p-3 rounded-lg border transition-colors ${form.watch('modifyDevice') ? 'bg-purple-500/5 border-purple-500/20' : 'bg-muted/30 border-muted-foreground/20'}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 font-semibold text-md text-purple-500">
+                          <Smartphone className="h-4 w-4" />
+                          设备信息
+                        </div>
+                        <FormField
+                          control={form.control}
+                          name="modifyDevice"
+                          render={({ field }) => (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">修改此项</span>
+                              <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                            </div>
+                          )}
+                        />
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
+                      
+                      <div className={`grid grid-cols-2 gap-3 transition-opacity ${form.watch('modifyDevice') ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
                         <FormField
                           control={form.control}
                           name="make"
@@ -577,21 +704,85 @@ const Home: React.FC = () => {
                       </div>
                     </div>
 
-                    <FormField
-                      control={form.control}
-                      name="dateTime"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-1 text-xs">
-                              <Calendar className="w-3 h-3" /> 拍摄日期/时间
-                          </FormLabel>
-                          <FormControl>
-                            <Input className="h-9" placeholder="YYYY:MM:DD HH:MM:SS" {...field} />
-                          </FormControl>
-                          <FormMessage className="text-[10px]" />
-                        </FormItem>
-                      )}
-                    />
+                    <Separator />
+
+                    {/* Date Time Section */}
+                    <div className={`space-y-3 p-3 rounded-lg border transition-colors ${form.watch('modifyDateTime') ? 'bg-amber-500/5 border-amber-500/20' : 'bg-muted/30 border-muted-foreground/20'}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 font-semibold text-md text-amber-500">
+                          <Calendar className="h-4 w-4" />
+                          拍摄时间
+                        </div>
+                        <FormField
+                          control={form.control}
+                          name="modifyDateTime"
+                          render={({ field }) => (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">修改此项</span>
+                              <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                            </div>
+                          )}
+                        />
+                      </div>
+
+                      <div className={`space-y-3 transition-opacity ${form.watch('modifyDateTime') ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
+                        <FormField
+                          control={form.control}
+                          name="dateOnly"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">日期</FormLabel>
+                              <FormControl>
+                                <Input type="date" className="h-9" {...field} />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                          <FormField
+                            control={form.control}
+                            name="hourOnly"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs">小时</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger className="h-9">
+                                      <SelectValue placeholder="小时" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {Array.from({ length: 24 }).map((_, i) => {
+                                      const val = i.toString().padStart(2, '0');
+                                      return <SelectItem key={val} value={val}>{val} 时</SelectItem>;
+                                    })}
+                                  </SelectContent>
+                                </Select>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="minuteOnly"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs">分钟</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    className="h-9" 
+                                    placeholder="随机" 
+                                    {...field} 
+                                    value={field.value || ''}
+                                  />
+                                </FormControl>
+                                <FormDescription className="text-[10px]">留空则随机 (00-59)</FormDescription>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    </div>
 
                     <div className="flex gap-3 pt-2">
                         <Button type="submit" className="flex-1" size="lg">
@@ -625,12 +816,13 @@ const Home: React.FC = () => {
                 
                 <div className="space-y-2">
                     <h4 className="text-xs font-bold flex items-center gap-1 text-foreground">
-                        <Info className="w-3 h-3 text-primary" /> 操作技巧
+                        <Info className="w-3 h-3 text-primary" /> 操作技巧与逻辑
                     </h4>
                     <ul className="text-[10px] text-muted-foreground list-disc pl-4 space-y-1">
+                        <li><strong>选择性修改：</strong>勾选每个版块右上角的“修改此项”后，该版块的设置才会生效。</li>
+                        <li><strong>时间修改规则：</strong>若只修改了日期未填分钟，系统将默认设为 08:XX（XX为随机分钟）。</li>
+                        <li><strong>无时间信息处理：</strong>若图片原始不含拍摄时间，批量修改时将跳过该图片以保护原始状态。</li>
                         <li><strong>批量处理：</strong>开启“应用设置到所有图片”后，保存操作会同步更新列表中所有图片。</li>
-                        <li><strong>批量导出：</strong>点击左侧列表底部的“批量下载 ZIP”可将所有处理后的图片打包下载。</li>
-                        <li><strong>iOS 用户：</strong>选取照片时请点击“选项”并勾选“所有照片数据”。</li>
                     </ul>
                 </div>
               </CardFooter>
