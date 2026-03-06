@@ -9,7 +9,10 @@
     "deploy": "npm run build && cp dist/index.html dist/404.html && gh-pages -d dist",
     "lint": "tsgo -p tsconfig.check.json; biome lint --only=correctness/noUndeclaredDependencies; ast-grep scan"
   },
-  "dependencies": {},
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
   "devDependencies": {
     "@biomejs/biome": "2.3.4",
     "@tailwindcss/container-queries": "^0.1.1",
