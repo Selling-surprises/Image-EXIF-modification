@@ -1,10 +1,8 @@
-# 欢迎使用你的秒哒应用代码包
-秒哒应用链接
-    URL:https://www.miaoda.cn/projects/app-9zdx4u3q3awx
+# 图片EXIF编辑器
 
 ## 介绍
 
-项目介绍
+一个可以修改图片EXFI信息的网页，可以批量读取修改GPS信息等等
 
 ## 目录结构
 
