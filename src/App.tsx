@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import IntersectObserver from '@/components/common/IntersectObserver';
 import { Toaster } from '@/components/ui/sonner';
 import { Layout } from '@/components/layout/AppLayout';
@@ -8,6 +8,7 @@ import NotFound from '@/pages/NotFound';
 
 const App: React.FC = () => {
   return (
+    // ✅ 关键：使用 HashRouter，无 basename
     <Router>
       <IntersectObserver />
       <div className="flex flex-col min-h-screen">
