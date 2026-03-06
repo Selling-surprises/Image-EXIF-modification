@@ -10,6 +10,7 @@
     "lint": "tsgo -p tsconfig.check.json; biome lint --only=correctness/noUndeclaredDependencies; ast-grep scan"
   },
   "dependencies": {
+    "@radix-ui/react-tooltip": "^1.1.8",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-helmet-async": "^2.0.5",
