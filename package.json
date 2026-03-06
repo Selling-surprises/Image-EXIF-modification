@@ -12,7 +12,8 @@
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-helmet-async": "^2.0.5"
+    "react-helmet-async": "^2.0.5",
+    "react-router-dom": "^6.30.0"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.4",
