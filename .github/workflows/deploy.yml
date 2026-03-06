@@ -25,10 +25,12 @@ jobs:
       - name: Build
         run: npm run build
 
-      # ✅ 关键：HashRouter 不需要 404.html，已删除该步骤
+      # ✅ 确认 dist 目录包含正确 base 路径构建的文件
+      - name: Check dist
+        run: ls -la dist
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4  # 升级到 v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
