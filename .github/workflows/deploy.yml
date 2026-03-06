@@ -1,23 +1,26 @@
 name: Deploy to GitHub Pages
 
-于:
+on:
   push:
-    分支: [main]
+    branches: [main]
+
+permissions:
+  contents: write
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4  # 建议升级到 v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
 
       - name: Install dependencies
-        run: npm install   # 修改此行
+        run: npm install
 
       - name: Build
         run: npm run build
@@ -30,3 +33,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
+          force_orphan: true  # 强制创建干净分支
