@@ -5,9 +5,10 @@ import path from 'path';
 
 import { miaodaDevPlugin } from "miaoda-sc-plugin";
 
-// https://vite.dev/config/ 
+// https://vite.dev/config/
 export default defineConfig({
-  base: '/Image-EXIF-modification/',  // ← 此处改为你的仓库名
+  // ✅ 关键：GitHub Pages 项目站点需要带仓库名的绝对路径
+  base: '/Image-EXIF-modification/',
   plugins: [
     react(),
     svgr({
