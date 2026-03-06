@@ -25,8 +25,7 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Copy 404.html
-        run: cp dist/index.html dist/404.html
+      # ✅ 关键：HashRouter 不需要 404.html，已删除该步骤
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
